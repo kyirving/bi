@@ -6,6 +6,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http/pprof"
+	"time"
+
 	"github.com/1340691923/xwl_bi/application"
 	"github.com/1340691923/xwl_bi/controller"
 	"github.com/1340691923/xwl_bi/engine/db"
@@ -19,9 +23,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 	"go.uber.org/zap"
-	"log"
-	"net/http/pprof"
-	"time"
 )
 
 var (
@@ -39,6 +40,8 @@ func init() {
 
 // By 肖文龙
 func main() {
+
+	//初始化服务：如redis，mysql，ck..
 	app := application.NewApp(
 		"report_server",
 		application.WithConfigFileDir(configFileDir),
@@ -53,6 +56,7 @@ func main() {
 		application.RegisterInitFnObserver(application.RefreshTableId),
 	)
 
+	//检测初始化是否出错
 	err := app.InitConfig().NotifyInitFnObservers().Error()
 
 	if err != nil {
@@ -62,6 +66,7 @@ func main() {
 
 	defer app.Close()
 
+	//获取kafka错误信息
 	go func() {
 		for {
 			select {
@@ -73,8 +78,10 @@ func main() {
 			}
 		}
 	}()
+
 	go sinker.ClearDimsCacheByTimeBylocal(time.Second * 20)
 
+	//定义路由
 	router := fasthttprouter.New()
 
 	router.GET("/debug/pprof/", fasthttpadaptor.NewFastHTTPHandlerFunc(pprof.Index))
@@ -94,31 +101,40 @@ func main() {
 
 	router.GET("/GetWordParse", controller.GetWordParse)
 
+	//上报路由
 	//写着写着变成了flutter的嵌套语法哈哈哈
 	router.POST(
 		"/sync_json/:typ/:appid/:appkey/:eventName/:debug",
+		//过滤器:允许跨域，打印错误信息
 		middleware.Cors(
+			//过滤器:禁止黑名单UserAgent
 			middleware.WechatSpider(
 				controller.ReportController{}.ReportAction,
 			),
 		),
 	)
 
+	//创建上报服务
 	server := &fasthttp.Server{
 		Handler: router.Handler,
 	}
+
+	//响应读取超时事件
 	if model.GlobConfig.Report.ReadTimeout != 0 {
 		server.ReadTimeout = time.Duration(model.GlobConfig.Report.ReadTimeout) * time.Second
 	}
 
+	//写超时
 	if model.GlobConfig.Report.WriteTimeout != 0 {
 		server.WriteTimeout = time.Duration(model.GlobConfig.Report.WriteTimeout) * time.Second
 	}
 
+	//限制ip并发数
 	if model.GlobConfig.Report.MaxConnsPerIP != 0 {
 		server.MaxConnsPerIP = model.GlobConfig.Report.MaxConnsPerIP
 	}
 
+	//每个连接可以服务无限数量的请求
 	if model.GlobConfig.Report.MaxRequestsPerConn != 0 {
 		server.MaxRequestsPerConn = model.GlobConfig.Report.MaxRequestsPerConn
 	}

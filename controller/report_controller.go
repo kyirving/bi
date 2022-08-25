@@ -3,6 +3,10 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/engine/logs"
 	"github.com/1340691923/xwl_bi/model"
@@ -14,9 +18,6 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
-	"math"
-	"strings"
-	"time"
 )
 
 type ReportController struct {
@@ -30,6 +31,7 @@ func (this ReportController) ReportAction(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	//获取地址栏上的参数
 	var (
 		typ       = ctx.UserValue("typ").(string)
 		appid     = ctx.UserValue("appid").(string)
@@ -38,6 +40,15 @@ func (this ReportController) ReportAction(ctx *fasthttp.RequestCtx) {
 		eventName = ctx.UserValue("eventName").(string)
 		body      = ctx.Request.Body()
 	)
+
+	fmt.Println("typ = ", typ)
+	fmt.Println("appid = ", appid)
+	fmt.Println("appkey = ", appkey)
+	fmt.Println("debug = ", debug)
+	fmt.Println("eventName = ", eventName)
+	fmt.Println("body = ", body)
+
+	fmt.Println("肘 跟我禁舞!!!")
 	if strings.TrimSpace(eventName) == "" {
 		this.FastError(ctx, errors.New("事件名 不能为空"))
 		return
@@ -48,6 +59,7 @@ func (this ReportController) ReportAction(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	//上报服务
 	reportService := report.ReportService{}
 
 	tableId, err := reportService.GetTableid(appid, appkey)
