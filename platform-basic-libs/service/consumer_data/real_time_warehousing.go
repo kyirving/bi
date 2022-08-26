@@ -1,13 +1,14 @@
 package consumer_data
 
 import (
+	"sync"
+	"time"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/engine/logs"
 	"github.com/1340691923/xwl_bi/model"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 type RealTimeWarehousingData struct {
@@ -24,7 +25,10 @@ type RealTimeWarehousing struct {
 	flushInterval int
 }
 
+//初始化RealTimeWarehousing
 func NewRealTimeWarehousing(config model.BatchConfig) *RealTimeWarehousing {
+
+	//读取配置
 	logs.Logger.Info("NewRealTimeWarehousing", zap.Int("batchSize", config.BufferSize), zap.Int("flushInterval", config.FlushInterval))
 	realTimeWarehousing := &RealTimeWarehousing{
 		buffer:        make([]*RealTimeWarehousingData, 0, config.BufferSize),
@@ -32,7 +36,7 @@ func NewRealTimeWarehousing(config model.BatchConfig) *RealTimeWarehousing {
 		batchSize:     config.BufferSize,
 		flushInterval: config.FlushInterval,
 	}
-
+	//设置间隔
 	if config.FlushInterval > 0 {
 		realTimeWarehousing.RegularFlushing()
 	}

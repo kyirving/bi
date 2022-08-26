@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/engine/logs"
 	"github.com/1340691923/xwl_bi/model"
@@ -13,9 +17,6 @@ import (
 	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
 	"github.com/valyala/fastjson"
 	"go.uber.org/zap"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 const (
@@ -105,6 +106,7 @@ func AddTableColumn(kafkaData model.KafkaData, failFunc func(data consumer_data.
 		return
 	}
 
+	//Object 返回 v 的底层 JSON 对象
 	obj, err := ReqDataObject.GetParseObject().Object()
 	if err != nil {
 		logs.Logger.Error("ReqDataObject.GetParseObject().Object()", zap.Error(err))

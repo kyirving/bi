@@ -3,6 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"math"
+	"net/http"
+	_ "net/http/pprof"
+	"runtime"
+	"strconv"
+	"time"
+
 	"github.com/1340691923/xwl_bi/application"
 	"github.com/1340691923/xwl_bi/cmd/sinker/action"
 	"github.com/1340691923/xwl_bi/cmd/sinker/geoip"
@@ -18,13 +26,6 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"go.uber.org/zap"
-	"log"
-	"math"
-	"net/http"
-	_ "net/http/pprof"
-	"runtime"
-	"strconv"
-	"time"
 )
 
 var (
@@ -51,6 +52,7 @@ func init() {
 
 func main() {
 
+	//异常处理
 	defer func() {
 		if r := recover(); r != nil {
 			//打印调用栈信息
@@ -62,6 +64,7 @@ func main() {
 		}
 	}()
 
+	//服务注册
 	app := application.NewApp(
 		"sinker",
 		application.WithConfigFileDir(configFileDir),
@@ -85,6 +88,7 @@ func main() {
 	defer app.Close()
 
 	geoip2, err := geoip.NewGeoip(geoip.GeoipMmdbByte)
+	fmt.Println("geoip.NewGeoip = ", geoip2)
 
 	if err != nil {
 		logs.Logger.Error("Geoip 初始化失败", zap.Error(err))
@@ -93,6 +97,7 @@ func main() {
 
 	defer geoip2.Close()
 
+	//开启服务
 	go func() {
 		if model.GlobConfig.Sinker.PprofHttpPort != 0 {
 			httpPort := ":" + strconv.Itoa(int(model.GlobConfig.Sinker.PprofHttpPort))
@@ -106,16 +111,23 @@ func main() {
 
 	sinkerC := model.GlobConfig.Sinker
 
+	//实时数据仓库
 	realTimeWarehousing := consumer_data.NewRealTimeWarehousing(sinkerC.RealTimeWarehousing)
+	//上报状态
 	reportAcceptStatus := consumer_data.NewReportAcceptStatus(sinkerC.ReportAcceptStatus)
+	//上报数据到clickhouse
 	reportData2CK := consumer_data.NewReportData2CK(sinkerC.ReportData2CK)
 
 	realTimeDataSarama := sinker.NewKafkaSarama()
 	reportData2CKSarama := realTimeDataSarama.Clone()
+
+	//开启协程，读取metaAttrRelationChan、attributeChan、metaEventChan通道，执行DDL操作
 	go action.MysqlConsumer()
+	//开启协程，每30分钟，删除缓存key
 	go sinker.ClearDimsCacheByTime(time.Minute * 30)
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+	//初始化kafka
 	err = realTimeDataSarama.Init(
 		model.GlobConfig.Comm.Kafka,
 		model.GlobConfig.Comm.Kafka.ReportTopicName,
@@ -124,6 +136,7 @@ func main() {
 			//ETL
 			var kafkaData model.KafkaData
 			err = json.Unmarshal(msg.Value, &kafkaData)
+			fmt.Println("realTimeDataSarama.Init kafkaData = ", kafkaData)
 			if err != nil {
 				logs.Logger.Error("json.Unmarshal Err", zap.Error(err))
 				markFn()
@@ -168,16 +181,19 @@ func main() {
 				markFn()
 				return
 			}
+			fmt.Println("reportData2CKSarama.Init kafkaData = ", kafkaData)
 
 			kafkaData.Offset = msg.Offset
-			kafkaData.ConsumptionTime = msg.Timestamp.Format(util.TimeFormat)
+			kafkaData.ConsumptionTime = msg.Timestamp.Format(util.TimeFormat) //格式化时间
 
+			//gjson 获取json串里的值
 			gjsonArr := gjson.GetManyBytes(kafkaData.ReqData, "xwl_distinct_id", "xwl_client_time")
 
 			xwlDistinctId := gjsonArr[0].String()
 
 			xwlClientTime := gjsonArr[1].String()
 
+			//获取tableid
 			tableId, _ := strconv.Atoi(kafkaData.TableId)
 
 			if kafkaData.EventName == "" {
@@ -185,6 +201,7 @@ func main() {
 				return
 			}
 
+			//记录不合法信息
 			if xwlDistinctId == "" {
 				logs.Logger.Error("xwl_distinct_id 为空", zap.String("kafkaData.ReqData", util.Bytes2str(kafkaData.ReqData)))
 
@@ -211,6 +228,7 @@ func main() {
 				return
 			}
 
+			//通过ip设置地址信息
 			if kafkaData.Ip != "" {
 				province, city, err := geoip2.GetAreaFromIP(kafkaData.Ip)
 				if err != nil {
@@ -227,6 +245,7 @@ func main() {
 			clinetT := util.Str2Time(xwlClientTime, util.TimeFormat)
 			serverT := util.Str2Time(kafkaData.ReportTime, util.TimeFormat)
 
+			//上报时间差
 			if math.Abs(serverT.Sub(clinetT).Minutes()) > 10 {
 				reportAcceptStatus.Add(&consumer_data.ReportAcceptStatusData{
 					PartDate:       kafkaData.ReportTime,
@@ -244,6 +263,7 @@ func main() {
 				return
 			}
 
+			//设置信息
 			kafkaData.ReqData, _ = sjson.SetBytes(kafkaData.ReqData, "xwl_part_event", kafkaData.EventName)
 			kafkaData.ReqData, _ = sjson.SetBytes(kafkaData.ReqData, "xwl_part_date", xwlClientTime)
 			kafkaData.ReqData, _ = sjson.SetBytes(kafkaData.ReqData, "xwl_server_time", kafkaData.ReportTime)
@@ -260,7 +280,7 @@ func main() {
 				return
 			}
 
-			//生成表名
+			//生成表名 通过上报report_type判断时event还是user
 			tableName := kafkaData.GetTableName()
 
 			//新增表结构

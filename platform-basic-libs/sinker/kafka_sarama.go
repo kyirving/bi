@@ -2,10 +2,11 @@ package sinker
 
 import (
 	"context"
-	"github.com/1340691923/xwl_bi/engine/logs"
-	"github.com/1340691923/xwl_bi/model"
 	"sync"
 	"time"
+
+	"github.com/1340691923/xwl_bi/engine/logs"
+	"github.com/1340691923/xwl_bi/model"
 
 	"github.com/Shopify/sarama"
 	"github.com/pkg/errors"
@@ -68,6 +69,12 @@ func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, c
 	return nil
 }
 
+/*
+	cfg kafka配置结构体
+	topicName toptic名称
+	consumerGroup 消费者组
+
+*/
 func (k *KafkaSarama) Init(cfg model.KafkaCfg, topicName, consumerGroup string, putFn func(msg model.InputMessage, markFn func()), cleanupFn func()) (err error) {
 	k.cfg = cfg
 	k.ctx, k.cancel = context.WithCancel(context.Background())
