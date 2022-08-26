@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+
 	"github.com/1340691923/xwl_bi/application"
 	"github.com/1340691923/xwl_bi/engine/logs"
 	_ "github.com/ClickHouse/clickhouse-go"
@@ -53,6 +54,7 @@ func main() {
 
 	defer app.Close()
 
+	//运行服务
 	app.RunManager()
 
 	app.WaitForExitSign(func() {

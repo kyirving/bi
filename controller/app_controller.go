@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+
 	"github.com/1340691923/xwl_bi/model"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/jwt"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/response"
@@ -27,6 +28,7 @@ func (this AppController) Create(ctx *fiber.Ctx) error {
 		return this.Error(ctx, errors.New("应用名不能为空"))
 	}
 
+	//验证touken
 	c, _ := jwt.ParseToken(this.GetToken(ctx))
 
 	appService := app2.AppService{}

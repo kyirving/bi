@@ -2,16 +2,17 @@ package application
 
 import (
 	"fmt"
-	"github.com/1340691923/xwl_bi/engine/logs"
-	"github.com/1340691923/xwl_bi/model"
-	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
-	"github.com/1340691923/xwl_bi/router"
-	"go.uber.org/zap"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+
+	"github.com/1340691923/xwl_bi/engine/logs"
+	"github.com/1340691923/xwl_bi/model"
+	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
+	"github.com/1340691923/xwl_bi/router"
+	"go.uber.org/zap"
 
 	"github.com/spf13/viper"
 )
@@ -139,6 +140,7 @@ func (this *App) Error() (err error) {
 }
 
 func (this *App) RunManager() {
+	//初始化路由
 	appServer := router.Init()
 
 	go func() {

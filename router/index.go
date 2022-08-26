@@ -15,16 +15,20 @@ import (
 
 func Init() *App {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	//路由服务
 	app := New(Config{
 		AppName:     "铸龙-BI",
 		JSONDecoder: json.Unmarshal,
 		JSONEncoder: json.Marshal,
 	})
 
+	//压缩中间件
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestCompression,
 	}))
 
+	//文件系统中间件
 	app.Use("/", filesystem.New(filesystem.Config{
 		Root: views.GetFileSystem(),
 	}))
@@ -50,7 +54,7 @@ func Init() *App {
 		runMetaData,
 		runAnalysis,
 		runPannel,
-		runApp,
+		runApp, //应用管理模块
 		runUserGroup,
 	)
 }

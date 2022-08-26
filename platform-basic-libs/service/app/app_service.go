@@ -2,13 +2,14 @@ package app
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/model"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/service/analysis/utils"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/service/myapp"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/sinker"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
-	"strconv"
 )
 
 type AppService struct {
@@ -19,8 +20,8 @@ func (this *AppService) UpdateManager(app model.App, managerUid int32) (err erro
 		SqlBuilder.
 		Update("app").
 		SetMap(map[string]interface{}{
-		"app_manager": app.AppManager,
-		"update_by":   managerUid}).
+			"app_manager": app.AppManager,
+			"update_by":   managerUid}).
 		Where(db.Eq{"app_id": app.AppId}).
 		RunWith(db.Sqlx).Exec()
 	if err != nil {
@@ -38,6 +39,7 @@ func (this *AppService) Create(app model.App, managerUid int32) (err error) {
 			Exec()
 	}
 
+	//生成APPID和APPKEY
 	app.AppId = util.GetUUid()
 	app.AppKey = util.MD5HexHash(util.Str2bytes(util.GetUUid()))
 	if app.SaveMonth < 1 {
@@ -48,15 +50,15 @@ func (this *AppService) Create(app model.App, managerUid int32) (err error) {
 		SqlBuilder.
 		Insert("app").
 		SetMap(map[string]interface{}{
-		"app_name":    app.AppName,
-		"descibe":     app.Descibe,
-		"app_id":      app.AppId,
-		"app_key":     app.AppKey,
-		"update_by":   managerUid,
-		"create_by":   managerUid,
-		"app_manager": managerUid,
-		"save_mouth":  app.SaveMonth,
-	}).RunWith(db.Sqlx).Exec()
+			"app_name":    app.AppName,
+			"descibe":     app.Descibe,
+			"app_id":      app.AppId,
+			"app_key":     app.AppKey,
+			"update_by":   managerUid,
+			"create_by":   managerUid,
+			"app_manager": managerUid,
+			"save_mouth":  app.SaveMonth,
+		}).RunWith(db.Sqlx).Exec()
 
 	if err != nil {
 		return
@@ -69,7 +71,7 @@ func (this *AppService) Create(app model.App, managerUid int32) (err error) {
 	}
 
 	eventTableName := "xwl_event" + strconv.Itoa(int(tableId))
-
+	//sinker.GetClusterSql() sinker.GetMergeTree() 集群存在则处理机制不同
 	_, err = db.ClickHouseSqlx.Exec(
 		`  CREATE TABLE ` + eventTableName + ` ` + sinker.GetClusterSql() + ` (
 			xwl_part_date DateTime DEFAULT now(),
@@ -219,9 +221,9 @@ func (this *AppService) ResetAppkey(managerUid int32, app model.App) (err error)
 		SqlBuilder.
 		Update("app").
 		SetMap(map[string]interface{}{
-		"app_key":   app.AppKey,
-		"update_by": managerUid,
-	}).Where(db.Eq{"app_id": app.AppId}).RunWith(db.Sqlx).Exec()
+			"app_key":   app.AppKey,
+			"update_by": managerUid,
+		}).Where(db.Eq{"app_id": app.AppId}).RunWith(db.Sqlx).Exec()
 	if err != nil {
 		return
 	}
