@@ -272,6 +272,7 @@ func main() {
 			kafkaData.ReqData, _ = sjson.SetBytes(kafkaData.ReqData, "xwl_kafka_partition", msg.Partition)
 			pp := parser.FastjsonParser{}
 
+			//metric = kafkaData.ReqData的 fastjson.Value类型
 			metric, err := pp.Parse(kafkaData.ReqData)
 			fmt.Println("metric = ", metric)
 

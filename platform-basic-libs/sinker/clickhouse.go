@@ -88,16 +88,25 @@ func ClearDimsCacheByKey(key string) {
 	dimsCacheMap.Delete(key)
 }
 
+/*
+	database ck db名称
+	table 事件表名
+	conn ck 执行句柄
+*/
 func GetDims(database, table string, excludedColumns []string, conn *sqlx.DB, onlyRedis bool) (dims []*model2.ColumnWithType, err error) {
 
+	//获取key如 ： dimsHash_{{database}}_{{table}} => dimsHash_bi_event1
 	dimsCachekey := GetDimsCachekey(database, table)
 	if !onlyRedis {
+		//从sync.Map中根据键取值
 		cache, load := dimsCacheMap.Load(dimsCachekey)
+		fmt.Println("cache = ", cache)
 		if load {
 			return cache.([]*model2.ColumnWithType), nil
 		}
 	}
 
+	//一个高性能 100% 兼容的“encoding/json”替代品
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	redisConn := db.RedisPool.Get()
@@ -109,6 +118,7 @@ func GetDims(database, table string, excludedColumns []string, conn *sqlx.DB, on
 		if err == nil {
 			jsonErr := json.Unmarshal(dimsCache, &dims)
 			if jsonErr == nil {
+				//往sync.Map 添加数据
 				dimsCacheMap.Store(dimsCachekey, dims)
 				return dims, err
 			}
