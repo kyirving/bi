@@ -131,6 +131,7 @@ func GetDims(database, table string, excludedColumns []string, conn *sqlx.DB, on
 		logs.Logger.Error("redisErr", zap.Error(redisErr))
 	}
 
+	//查询表的所有列
 	var rs *sql.Rows
 	if rs, err = conn.Query(fmt.Sprintf(selectSQLTemplate, database, table)); err != nil {
 		err = errors.Wrapf(err, "")
@@ -154,6 +155,7 @@ func GetDims(database, table string, excludedColumns []string, conn *sqlx.DB, on
 		err = errors.Wrapf(ErrTblNotExist, "%s.%s", database, table)
 		return dims, err
 	}
+	//将表的所有列存储到map中去
 	dimsCacheMap.Store(dimsCachekey, dims)
 
 	res, _ := json.Marshal(dims)
@@ -161,6 +163,7 @@ func GetDims(database, table string, excludedColumns []string, conn *sqlx.DB, on
 	if err != nil {
 		return dims, err
 	}
+	//将表的所有列存储到redis集合中去
 	_, err = redisConn.Do("SETEX", dimsCachekey, 60*60*6, s)
 
 	return dims, err

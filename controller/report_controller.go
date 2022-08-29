@@ -62,6 +62,7 @@ func (this ReportController) ReportAction(ctx *fasthttp.RequestCtx) {
 	//上报服务
 	reportService := report.ReportService{}
 
+	//首次读取redis，否则读取sync.map
 	tableId, err := reportService.GetTableid(appid, appkey)
 	if err != nil {
 		this.FastError(ctx, err)
@@ -95,6 +96,7 @@ func (this ReportController) ReportAction(ctx *fasthttp.RequestCtx) {
 		xwlPartDate = time.Now().Format(util.TimeFormat)
 	}
 
+	//写入对应事件数据
 	duck.NewReportType(appid, tableId, debug, xwlPartDate, eventName, xwlIp, ctx.PostBody())
 
 	if reportService.IsDebugUser(debug, xwlDistinctId, tableId) {

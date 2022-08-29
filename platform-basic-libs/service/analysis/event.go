@@ -3,15 +3,16 @@ package analysis
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync/atomic"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/engine/logs"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/my_error"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/request"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/service/analysis/utils"
 	jsoniter "github.com/json-iterator/go"
-	"strconv"
-	"strings"
-	"sync/atomic"
 )
 
 type Event struct {
@@ -30,6 +31,7 @@ func (this *Event) getDivisorName() string {
 func (this *Event) GetList() (interface{}, error) {
 
 	SQL, args, err := this.GetExecSql()
+	fmt.Println("GetList.GetExecSql() SQL = ", SQL)
 
 	if err != nil {
 		return nil, err
@@ -195,12 +197,14 @@ func (this *Event) getSqlByZhibiao(index int, sql string, args []interface{}) (S
 func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 
 	whereSql, whereArgs, _, err := utils.GetWhereSql(this.req.WhereFilter)
+	fmt.Println("whereSql = ", whereSql)
 
 	if err != nil {
 		return "", nil, err
 	}
 
 	filterDateSql, filterDateArgs := this.GetFilterDateSql()
+	fmt.Println("filterDateSql = ", filterDateSql)
 
 	usersql, userArgs, err := getUserfilterSqlArgs(this.req.WhereFilterByUser, this.req.Appid)
 
@@ -209,6 +213,7 @@ func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 	}
 
 	sql := whereSql + usersql + filterDateSql
+	fmt.Println("sql = ", sql)
 	args := []interface{}{}
 	args = append(args, whereArgs...)
 	args = append(args, userArgs...)
@@ -234,6 +239,7 @@ func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 		orderBY = append(orderBY, "serial_number")
 	}
 
+	fmt.Println("order by  = ", orderBY)
 	return `select * from (` + strings.Join(sqlArr, " union all ") + `) order by ` + strings.Join(orderBY, ","), allArgs, err
 }
 

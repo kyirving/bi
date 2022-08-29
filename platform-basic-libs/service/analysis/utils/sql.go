@@ -3,12 +3,13 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/request"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
 	"github.com/Masterminds/squirrel"
-	"strconv"
-	"strings"
 )
 
 type sqlI interface {
@@ -50,6 +51,7 @@ var rangeSymbolArr = []string{"range"}
 var rangeTimeSymbolArr = []string{"rangeTime"}
 
 func GetWhereSql(anlysisFilter request.AnalysisFilter) (SQL string, Args []interface{}, Cols []string, err error) {
+	//sqlI为接口，有ToSql和Append 方法待实现
 	var arrP sqlI
 	colArr := []string{}
 	switch anlysisFilter.Relation {

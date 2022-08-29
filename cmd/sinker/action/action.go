@@ -100,13 +100,14 @@ func AddMetaEvent(kafkaData model.KafkaData) (err error) {
 
 func AddTableColumn(kafkaData model.KafkaData, failFunc func(data consumer_data.ReportAcceptStatusData), tableName string, ReqDataObject *parser.FastjsonMetric) (err error) {
 
+	//获取事件表的所有列
 	dims, err := sinker.GetDims(model.GlobConfig.Comm.ClickHouse.DbName, tableName, nil, db.ClickHouseSqlx, false)
 	if err != nil {
 		logs.Logger.Error("sinker.GetDims", zap.Error(err))
 		return
 	}
 
-	//Object 返回 v 的底层 JSON 对象
+	//Object 返回 value 的底层 JSON 对象
 	obj, err := ReqDataObject.GetParseObject().Object()
 	if err != nil {
 		logs.Logger.Error("ReqDataObject.GetParseObject().Object()", zap.Error(err))
@@ -124,7 +125,9 @@ func AddTableColumn(kafkaData model.KafkaData, failFunc func(data consumer_data.
 	for _, column := range dims {
 		knownKeys = append(knownKeys, column.Name)
 
+		//根据列名获取上报的数据
 		if obj.Get(column.Name) != nil {
+			//类型判断
 			reportType := parser.FjDetectType(obj.Get(column.Name))
 			if reportType != column.Type {
 				if !(reportType == parser.Int && column.Type == parser.Float) && !(reportType == parser.Float && column.Type == parser.Int) {
@@ -148,12 +151,14 @@ func AddTableColumn(kafkaData model.KafkaData, failFunc func(data consumer_data.
 
 	b := bytes.Buffer{}
 
+	//遍历obj内的每个项目调用
 	obj.Visit(func(key []byte, v *fastjson.Value) {
 
 		columnName := string(key)
 
 		func() {
 
+			//{{tableId}}_{{EventName}}_{{columnName}}
 			b.Reset()
 			b.WriteString(kafkaData.TableId)
 			b.WriteString("_")
