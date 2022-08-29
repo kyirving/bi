@@ -4,21 +4,22 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/engine/logs"
 	"github.com/1340691923/xwl_bi/model"
 	model2 "github.com/1340691923/xwl_bi/platform-basic-libs/sinker/model"
-	"github.com/1340691923/xwl_bi/platform-basic-libs/sinker/parse"
+	parser "github.com/1340691923/xwl_bi/platform-basic-libs/sinker/parse"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
 	"github.com/garyburd/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"regexp"
-	"strings"
-	"sync"
-	"time"
 )
 
 var (
@@ -39,6 +40,7 @@ func GetDimsCachekey(database, table string) string {
 	return dimsCachekey
 }
 
+//sync.Map 在并发环境下使用，解决线程安全
 var dimsCacheMap sync.Map
 
 func ClearDimsCacheByTime(clearTime time.Duration) {
@@ -58,9 +60,11 @@ func ClearDimsCacheByTimeBylocal(clearTime time.Duration) {
 
 	for {
 		time.Sleep(clearTime)
+
+		//使用 Range 配合一个回调函数进行遍历操作
 		dimsCacheMap.Range(func(key, value interface{}) bool {
-			ClearDimsCacheByRedis(key.(string))
-			dimsCacheMap.Delete(key)
+			ClearDimsCacheByRedis(key.(string)) //删除redis缓存
+			dimsCacheMap.Delete(key)            //删除
 			return true
 		})
 

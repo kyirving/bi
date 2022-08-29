@@ -118,12 +118,13 @@ func main() {
 	//上报数据到clickhouse
 	reportData2CK := consumer_data.NewReportData2CK(sinkerC.ReportData2CK)
 
+	//kafka数据流
 	realTimeDataSarama := sinker.NewKafkaSarama()
 	reportData2CKSarama := realTimeDataSarama.Clone()
 
 	//开启协程，读取metaAttrRelationChan、attributeChan、metaEventChan通道，执行DDL操作
 	go action.MysqlConsumer()
-	//开启协程，每30分钟，删除缓存key
+	//开启协程，每30分钟，删除sync.map集合数据以及缓存
 	go sinker.ClearDimsCacheByTime(time.Minute * 30)
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -272,6 +273,7 @@ func main() {
 			pp := parser.FastjsonParser{}
 
 			metric, err := pp.Parse(kafkaData.ReqData)
+			fmt.Println("metric = ", metric)
 
 			//解析开发者上报的json数据
 			if err != nil {

@@ -38,11 +38,13 @@ type MyConsumerGroupHandler struct {
 	k *KafkaSarama
 }
 
+//实现接口 : 创建会话之前
 func (h MyConsumerGroupHandler) Setup(sess sarama.ConsumerGroupSession) error {
 	h.k.sess = sess
 	return nil
 }
 
+//实现接口 : 会话结束之后
 func (h MyConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 	begin := time.Now()
 	h.k.cleanupFn()
@@ -52,7 +54,9 @@ func (h MyConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 	return nil
 }
 
+//实现接口 : 会话生存中（主要就是在此阶段进行消息读取）进行调用
 func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	//读取数据执行回掉通知
 	for msg := range claim.Messages() {
 		h.k.putFn(model.InputMessage{
 			Topic:     msg.Topic,
@@ -62,6 +66,7 @@ func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, c
 			Offset:    msg.Offset,
 			Timestamp: &msg.Timestamp,
 		}, func() {
+			//putFn 失败的回调
 			sess.MarkMessage(msg, "")
 		})
 
@@ -81,12 +86,14 @@ func (k *KafkaSarama) Init(cfg model.KafkaCfg, topicName, consumerGroup string, 
 	k.putFn = putFn
 	k.cleanupFn = cleanupFn
 	k.topic = topicName
+	//创建一个配置
 	sarCfg, err := GetSaramaConfig(cfg)
 	if err != nil {
 		return err
 	}
 	sarCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 
+	//创建一个消费者组
 	cg, err := sarama.NewConsumerGroup(cfg.Addresses, consumerGroup, sarCfg)
 	if err != nil {
 		return err
@@ -122,6 +129,8 @@ LOOP_SARAMA:
 			return
 		}
 
+		// 通过 Consume 创建消费者组的会话，该函数的第三个参数即为该会话三个阶段的回调： Setup Cleanup 和 ConsumeClaim
+		// 分别在创建会话之前、会话结束之后 和 会话生存中（主要就是在此阶段进行消息读取）进行调用
 		if err := k.cg.Consume(k.ctx, []string{k.topic}, handler); err != nil {
 			if errors.Is(err, context.Canceled) {
 				logs.Logger.Info("KafkaSarama.Run quit due to context has been canceled", zap.String("task", k.topic))
