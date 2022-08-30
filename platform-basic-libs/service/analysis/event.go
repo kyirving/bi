@@ -32,6 +32,8 @@ func (this *Event) GetList() (interface{}, error) {
 
 	SQL, args, err := this.GetExecSql()
 	fmt.Println("GetList.GetExecSql() SQL = ", SQL)
+	fmt.Println("GetList.GetExecSql() args = ", SQL)
+	fmt.Println()
 
 	if err != nil {
 		return nil, err
@@ -389,9 +391,9 @@ func NewEvent(reqData []byte) (Ianalysis, error) {
 		return nil, err
 	}
 
-	fmt.Println("NewEvent() obj.sql = " , obj.sql)
+	fmt.Println("NewEvent() obj.sql = ", obj.sql)
 	fmt.Println()
-	fmt.Println("NewEvent() obj.args = " , obj.args)
+	fmt.Println("NewEvent() obj.args = ", obj.args)
 
 	return obj, nil
 }

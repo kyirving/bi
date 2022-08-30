@@ -52,6 +52,10 @@ var rangeTimeSymbolArr = []string{"rangeTime"}
 
 func GetWhereSql(anlysisFilter request.AnalysisFilter) (SQL string, Args []interface{}, Cols []string, err error) {
 	//sqlI为接口，有ToSql和Append 方法待实现
+
+	fmt.Println("anlysisFilter = ", anlysisFilter)
+	fmt.Println()
+
 	var arrP sqlI
 	colArr := []string{}
 	switch anlysisFilter.Relation {
