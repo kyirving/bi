@@ -200,29 +200,38 @@ func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 
 	whereSql, whereArgs, _, err := utils.GetWhereSql(this.req.WhereFilter)
 	fmt.Println("whereSql = ", whereSql)
+	fmt.Println("whereArgs = ", whereArgs)
+	fmt.Println()
 
 	if err != nil {
 		return "", nil, err
 	}
 
+	//日期sql段
 	filterDateSql, filterDateArgs := this.GetFilterDateSql()
 	fmt.Println("filterDateSql = ", filterDateSql)
 
 	usersql, userArgs, err := getUserfilterSqlArgs(this.req.WhereFilterByUser, this.req.Appid)
+	fmt.Println("usersql = ", usersql)
+	fmt.Println("userArgs = ", userArgs)
+	fmt.Println()
 
 	if err != nil {
 		return "", nil, err
 	}
 
 	sql := whereSql + usersql + filterDateSql
-	fmt.Println("sql = ", sql)
 	args := []interface{}{}
 	args = append(args, whereArgs...)
 	args = append(args, userArgs...)
 	args = append(args, filterDateArgs...)
 
-	sqlArr := []string{}
+	fmt.Println("sql = ", sql)
+	fmt.Println("args = ", args)
+	fmt.Println()
 
+	sqlArr := []string{}
+	//循环指标
 	for index := range this.req.ZhibiaoArr {
 
 		sql, args, err := this.getSqlByZhibiao(index, sql, args)

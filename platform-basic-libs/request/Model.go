@@ -9,6 +9,7 @@ type GmRoleModel struct {
 	Api         []string `json:"api"`
 }
 
+//Filts 全局筛选事件维度
 type AnalysisFilter struct {
 	FilterType string `json:"filterType"`
 	Filts      []struct {

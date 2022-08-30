@@ -53,11 +53,10 @@ var rangeTimeSymbolArr = []string{"rangeTime"}
 func GetWhereSql(anlysisFilter request.AnalysisFilter) (SQL string, Args []interface{}, Cols []string, err error) {
 	//sqlI为接口，有ToSql和Append 方法待实现
 
-	fmt.Println("anlysisFilter = ", anlysisFilter)
-	fmt.Println()
-
 	var arrP sqlI
 	colArr := []string{}
+
+	//判断条件是且还是或
 	switch anlysisFilter.Relation {
 	case AND:
 		arrP = &And{}
@@ -67,8 +66,10 @@ func GetWhereSql(anlysisFilter request.AnalysisFilter) (SQL string, Args []inter
 		return "", nil, nil, errors.New("错误的连接类型:" + anlysisFilter.Relation)
 	}
 
+	//循环anlysisFilter.Filts
 	for _, v := range anlysisFilter.Filts {
 		if v.FilterType == SIMPLE {
+			//追加列
 			colArr = append(colArr, v.ColumnName)
 			arrP.Append(getExpr(v.ColumnName, v.Comparator, v.Ftv))
 		} else {
@@ -121,20 +122,36 @@ func GetUserTableView(tableId int, fields []string) string {
 	return " (select xwl_distinct_id from xwl_user" + strconv.Itoa(tableId) + " xu group by xwl_distinct_id) "
 }
 
+/*
+	columnName 字段名称
+	comparator 操作符
+	ftv 值
+*/
 func getExpr(columnName, comparator string, ftv interface{}) squirrel.Sqlizer {
 
+	//操作符等于有值或者无值时
 	if util.InstrArr(noValueSymbolArr, comparator) {
+		//Expr 从 SQL 片段和参数构建表达式 ： isNotNull(columnName) or isNull(columnName)
 		return squirrel.Expr(fmt.Sprintf("%v(%v)", comparator, columnName))
 	}
+
+	//操作符等于range时
 	if util.InstrArr(rangeSymbolArr, comparator) {
 		return squirrel.Expr(fmt.Sprintf(" ( %v >= ? and %v <= ? ) ", columnName, columnName), ftv.([]interface{})[0], ftv.([]interface{})[1])
 	}
+
+	//操作符在 rangeTime时，也就是日期区间
 	if util.InstrArr(rangeTimeSymbolArr, comparator) {
+		//参数不足
 		if len(ftv.([]interface{})) != 2 {
 			return squirrel.Expr(" 1 = 1 ")
 		}
+
+		//toDateTime : clickhouse 时间日期函数
 		return squirrel.Expr(fmt.Sprintf(" ( %v >= toDateTime(?) and %v <= toDateTime(?) ) ", columnName, columnName), ftv.([]interface{})[0], ftv.([]interface{})[1])
 	}
+
+	//正则匹配： clickhouse match函数 字符串正则匹配，返回0或1
 	if comparator == "match" {
 		return squirrel.Expr(fmt.Sprintf("match(%v,?) = 1", columnName), ftv)
 	}
