@@ -367,13 +367,18 @@ func NewEvent(reqData []byte) (Ianalysis, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//时间参数不正确
 	if len(obj.req.Date) < 2 {
 		return nil, my_error.NewBusiness(ERROR_TABLE, TimeError)
 	}
+
+	//指标参数不正确
 	if len(obj.req.ZhibiaoArr) <= 0 {
 		return nil, my_error.NewBusiness(ERROR_TABLE, ZhiBiaoNumError)
 	}
 
+	//检测分组字段
 	for _, groupby := range obj.req.GroupBy {
 		if groupby == "" {
 			return nil, my_error.NewBusiness(ERROR_TABLE, GroupEmptyError)
@@ -383,6 +388,10 @@ func NewEvent(reqData []byte) (Ianalysis, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("NewEvent() obj.sql = " , obj.sql)
+	fmt.Println()
+	fmt.Println("NewEvent() obj.args = " , obj.args)
 
 	return obj, nil
 }

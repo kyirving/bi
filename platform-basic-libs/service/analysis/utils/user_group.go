@@ -1,11 +1,13 @@
 package utils
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/1340691923/xwl_bi/engine/db"
 	"github.com/1340691923/xwl_bi/model"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/util"
 	"github.com/Masterminds/squirrel"
-	"strings"
 )
 
 func GetUserGroupSqlAndArgs(ids []int, appid int) (SQL string, Args []interface{}, err error) {
@@ -13,6 +15,7 @@ func GetUserGroupSqlAndArgs(ids []int, appid int) (SQL string, Args []interface{
 		return " and ( 1 = 1 ) ", nil, err
 	}
 
+	//SqlBuilder 用于生产sql语句
 	sql, args, err := db.
 		SqlBuilder.
 		Select("user_list").
@@ -20,8 +23,13 @@ func GetUserGroupSqlAndArgs(ids []int, appid int) (SQL string, Args []interface{
 		Where(db.Eq{"appid": appid, "id": ids}).
 		ToSql()
 
+	fmt.Println("GetUserGroupSqlAndArgs() sql = ", sql)
+	fmt.Println("GetUserGroupSqlAndArgs() args = ", args)
+
+	//用于保存数据
 	var userGroupList []model.UserGroup
 
+	//选择使用此数据库。任何占位符参数都将替换为提供的参数
 	err = db.Sqlx.Select(&userGroupList, sql, args...)
 
 	if err != nil {

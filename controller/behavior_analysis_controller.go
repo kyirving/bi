@@ -1,12 +1,13 @@
 package controller
 
 import (
+	"strconv"
+
 	"github.com/1340691923/xwl_bi/platform-basic-libs/request"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/response"
 	"github.com/1340691923/xwl_bi/platform-basic-libs/service/analysis"
 	parser "github.com/1340691923/xwl_bi/platform-basic-libs/sinker/parse"
 	"github.com/gofiber/fiber/v2"
-	"strconv"
 )
 
 type BehaviorAnalysisController struct {
@@ -100,6 +101,10 @@ func (this BehaviorAnalysisController) GetValues(ctx *fiber.Ctx) error {
 //事件分析查询
 func (this BehaviorAnalysisController) EventList(ctx *fiber.Ctx) error {
 
+	// 获取Event对象，实现Ianalysis接口
+	/*
+		analysis.EventComand = 4
+	*/
 	i, err := analysis.NewAnalysisByCommand(analysis.EventComand, ctx.Body())
 
 	if err != nil {
