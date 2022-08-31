@@ -86,17 +86,37 @@ const (
 	Formula = 2
 )
 
+/*
+	index 下标
+	sql 条件段
+	args 条件段参数
+*/
 func (this *Event) getSqlByZhibiao(index int, sql string, args []interface{}) (SQL string, allArgs []interface{}, err error) {
 	zhibiao := this.req.ZhibiaoArr[index]
 
+	//获取指标sql段
 	eventSql, eventArgs := this.whereInZhibiaoEvent(zhibiao)
+
+	fmt.Println("eventSql = ", eventSql)
+	fmt.Println("eventArgs = ", eventArgs)
+	fmt.Println()
 
 	sql = sql + eventSql
 
 	args = append(args, eventArgs...)
+	fmt.Println("sql = ", sql)
+	fmt.Println("args = ", args)
+	fmt.Println()
 
+	//"  date_group ", "formatDateTime(xwl_part_date,'%Y年%m月%d日') as date_group "
 	dateGroupSql, dateGroupCol := this.GetGroupDateSql()
+
+	//获取分组
 	groupArr, groupCol := this.GetGroupSql()
+	fmt.Println("groupArr = ", groupArr)
+	fmt.Println("groupCol = ", groupCol)
+	fmt.Println()
+
 	copyGroupArr := groupArr
 
 	if dateGroupCol != "" {
@@ -117,6 +137,7 @@ func (this *Event) getSqlByZhibiao(index int, sql string, args []interface{}) (S
 	withSql := ""
 	argsWith := []interface{}{}
 	switch zhibiao.Typ {
+	//指标
 	case Zhibiao:
 		if len(zhibiao.SelectAttr) == 0 {
 			return "", nil, errors.New("请选择维度")
@@ -129,8 +150,12 @@ func (this *Event) getSqlByZhibiao(index int, sql string, args []interface{}) (S
 
 		selectAttr := this.req.ZhibiaoArr[index].SelectAttr
 
+		// col = toString("count()") or toString(fmt.Sprintf("count(%s)", col))
 		col := fmt.Sprintf(" (%s) as %s ", utils.CountTypMap[selectAttr[1]](selectAttr[0]), "amount")
+		fmt.Println("col = ", col)
+
 		groupCol = append(groupCol, col)
+	//公式
 	case Formula:
 		if len(zhibiao.One.SelectAttr) == 0 || len(zhibiao.Two.SelectAttr) == 0 {
 			return "", nil, errors.New("请选择维度")
@@ -198,6 +223,7 @@ func (this *Event) getSqlByZhibiao(index int, sql string, args []interface{}) (S
 
 func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 
+	//获取 req.whereFilter 条件段
 	whereSql, whereArgs, _, err := utils.GetWhereSql(this.req.WhereFilter)
 	fmt.Println("whereSql = ", whereSql)
 	fmt.Println("whereArgs = ", whereArgs)
@@ -207,10 +233,11 @@ func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 		return "", nil, err
 	}
 
-	//日期sql段
+	//获取 req.date 日期sql条件段
 	filterDateSql, filterDateArgs := this.GetFilterDateSql()
 	fmt.Println("filterDateSql = ", filterDateSql)
 
+	//获取 req.whereFilterByUser 用户sql条件段
 	usersql, userArgs, err := getUserfilterSqlArgs(this.req.WhereFilterByUser, this.req.Appid)
 	fmt.Println("usersql = ", usersql)
 	fmt.Println("userArgs = ", userArgs)
@@ -220,6 +247,7 @@ func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 		return "", nil, err
 	}
 
+	//sql 拼接
 	sql := whereSql + usersql + filterDateSql
 	args := []interface{}{}
 	args = append(args, whereArgs...)
@@ -231,9 +259,13 @@ func (this *Event) GetExecSql() (SQL string, allArgs []interface{}, err error) {
 	fmt.Println()
 
 	sqlArr := []string{}
-	//循环指标
+
+	//循环指标， 单个指标代表一个字段
 	for index := range this.req.ZhibiaoArr {
 
+		fmt.Println("index = ", index)
+		fmt.Println("sql = ", sql)
+		fmt.Println("args = ", args)
 		sql, args, err := this.getSqlByZhibiao(index, sql, args)
 		if err != nil {
 			return "", nil, err
@@ -266,6 +298,9 @@ func (this *Event) GetFilterDateSql() (SQL string, args []interface{}) {
 	return
 }
 
+/*
+	zhibiao 指标对象
+*/
 func (this *Event) whereInZhibiaoEvent(zhibiao request.EventZhibiao) (SQL string, args []interface{}) {
 
 	colsArr := []interface{}{}
@@ -361,6 +396,9 @@ func (this *Event) GetGroupDateSql() (groupSQL string, groupCol string) {
 	return
 }
 
+/*
+	分组
+*/
 func (this *Event) GetGroupSql() (groupSql []string, groupCol []string) {
 
 	for _, groupby := range this.req.GroupBy {
